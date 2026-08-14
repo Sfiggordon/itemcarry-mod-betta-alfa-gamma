@@ -1,8 +1,21 @@
-"entrypoints": {
-  "main": [
-    "com.igor.itemcarry.ItemCarryInit"
-  ],
-  "client": [
-    "com.igor.itemcarry.ItemCarryClient"
-  ]
-},
+{
+  "schemaVersion": 1,
+  "id": "itemcarry",
+  "version": "${version}",
+  "name": "Item Carry Mod",
+  "description": "Dropped items never despawn and can't be picked up normally",
+  "authors": ["Igor"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.igor.itemcarry.ItemCarryInit"],
+    "client": ["com.igor.itemcarry.ItemCarryClient"]
+  },
+  "mixins": ["itemcarry.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.20.1",
+    "java": ">=17"
+  }
+}
