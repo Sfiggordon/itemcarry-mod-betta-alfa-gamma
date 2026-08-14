@@ -21,4 +21,9 @@ src/main/resources/...    — fabric.mod.json, mixins, переводы клав
 .github/workflows/build.yml — автосборка .jar в облаке GitHub
 ```
 
+## Мотивация разработки
 
+```
+42-я улица проклята https://youtube.com/@42ndstreetiscursed?si=RNNffgXF80zIWefn
+```
+VladShuster in new Burmalda
