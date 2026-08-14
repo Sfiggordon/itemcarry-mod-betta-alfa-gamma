@@ -1,1 +1,30 @@
-
+{
+  "schemaVersion": 1,
+  "id": "itemcarry",
+  "version": "${version}",
+  "name": "Item Carry Mod",
+  "description": "Dropped items never despawn and can't be picked up normally - look at them and press a key to grab them, or hit them with left click to carry them Teardown-style.",
+  "authors": [
+    "Igor"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.igor.itemcarry.ItemCarryMod"
+    ],
+    "client": [
+      "com.igor.itemcarry.ItemCarryClient"
+    ]
+  },
+  "mixins": [
+    "itemcarry.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "1.20.1",
+    "java": ">=17"
+  }
+}
