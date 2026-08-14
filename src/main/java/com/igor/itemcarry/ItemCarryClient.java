@@ -3,11 +3,14 @@ package com.igor.itemcarry;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
@@ -24,14 +27,38 @@ public class ItemCarryClient implements ClientModInitializer {
             GLFW.GLFW_KEY_R,
             "key.categories.itemcarry"
         ));
+
+        // Обработка кейбинда R
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null || client.world == null) return;
+            
+            while (pickupKey.wasPressed()) {
+                ItemEntity target = getTargetedItem(client);
+                if (target != null) {
+                    sendPickupRequest(target.getId());
+                }
+            }
+        });
     }
 
     public static void onAttackItem(ItemEntity item) {
-        // Triggered by mixin when left-clicking item
-        // Server-side pickup will be handled by ServerPlayNetworking
+        // ЛКМ по предмету - отправляем carry toggle
+        sendCarryToggle(item.getId());
     }
 
-    public static ItemEntity getTargetedItem(MinecraftClient client) {
+    private static void sendPickupRequest(int entityId) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(entityId);
+        ClientPlayNetworking.send(ItemCarryInit.PICKUP_CHANNEL, buf);
+    }
+
+    private static void sendCarryToggle(int entityId) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(entityId);
+        ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
+    }
+
+    private static ItemEntity getTargetedItem(MinecraftClient client) {
         ClientPlayerEntity player = client.player;
         if (player == null || client.world == null) return null;
 
@@ -53,6 +80,4 @@ public class ItemCarryClient implements ClientModInitializer {
                 }
             }
         }
-        return closest;
-    }
-}
+        return close
