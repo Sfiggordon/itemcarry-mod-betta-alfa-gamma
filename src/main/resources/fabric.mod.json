@@ -3,7 +3,7 @@
   "id": "itemcarry",
   "version": "${version}",
   "name": "Item Carry Mod",
-  "description": "Dropped items never despawn, can't be picked up normally, and can be carried",
+  "description": "Dropped items never despawn and can't be picked up normally",
   "authors": ["Igor"],
   "license": "MIT",
   "environment": "*",
@@ -11,7 +11,6 @@
     "main": ["com.igor.itemcarry.ItemCarryInit"],
     "client": ["com.igor.itemcarry.ItemCarryClient"]
   },
-  "mixins": ["itemcarry.mixins.json"],
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",
