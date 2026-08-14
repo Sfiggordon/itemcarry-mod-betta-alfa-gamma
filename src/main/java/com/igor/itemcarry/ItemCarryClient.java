@@ -24,24 +24,14 @@ public class ItemCarryClient implements ClientModInitializer {
             GLFW.GLFW_KEY_R,
             "key.categories.itemcarry"
         ));
-
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null) return;
-            
-            while (pickupKey.wasPressed()) {
-                ItemEntity target = getTargetedItem(client);
-                if (target != null) {
-                    ItemCarryClientNetworking.sendPickupRequest(target.getId());
-                }
-            }
-        });
     }
 
     public static void onAttackItem(ItemEntity item) {
-        ItemCarryClientNetworking.sendCarryToggle(item.getId());
+        // Triggered by mixin when left-clicking item
+        // Server-side pickup will be handled by ServerPlayNetworking
     }
 
-    private static ItemEntity getTargetedItem(MinecraftClient client) {
+    public static ItemEntity getTargetedItem(MinecraftClient client) {
         ClientPlayerEntity player = client.player;
         if (player == null || client.world == null) return null;
 
