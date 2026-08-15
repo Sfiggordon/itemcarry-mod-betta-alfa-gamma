@@ -7,19 +7,6 @@
    наведя прицел на предмет и нажав клавишу **R** (можно поменять в Настройки → Управление →
    категория "Item Carry Mod").
 3. **Левый клик (удар) по выброшенному предмету** хватает его — он прикрепляется к камере, как в
-   Teardown. Повторный левый клик — бросает предмет вперёд.
-
-
-## Структура проекта
-
-```
-build.gradle              — сборочный скрипт (Fabric Loom)
-gradle.properties         — версии Minecraft/Fabric/Loader
-settings.gradle           — настройки Gradle-репозиториев
-src/main/java/...         — код мода
-src/main/resources/...    — fabric.mod.json, mixins, переводы клавиш
-.github/workflows/build.yml — автосборка .jar в облаке GitHub
-```
 
 ## Мотивация разработки
 
