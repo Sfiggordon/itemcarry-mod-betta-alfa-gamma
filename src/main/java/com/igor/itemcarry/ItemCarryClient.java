@@ -18,6 +18,10 @@ import java.util.Optional;
 
 public class ItemCarryClient implements ClientModInitializer {
     private static KeyBinding pickupKey;
+    private static boolean carrying = false;
+    private static double carryDistance = 2.2;
+    private static final double MIN_DISTANCE = 1.0;
+    private static final double MAX_DISTANCE = 5.0;
 
     @Override
     public void onInitializeClient() {
@@ -31,19 +35,41 @@ public class ItemCarryClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) return;
             while (pickupKey.wasPressed()) {
-                ItemEntity target = getTargetedItem(client);
-                int targetId = target != null ? target.getId() : -1;
-                PacketByteBuf buf = PacketByteBufs.create();
-                buf.writeInt(targetId);
-                ClientPlayNetworking.send(ItemCarryInit.PICKUP_CHANNEL, buf);
+                if (carrying) {
+                    carrying = false;
+                    sendPickup(-1);
+                } else {
+                    ItemEntity target = getTargetedItem(client);
+                    if (target != null) sendPickup(target.getId());
+                }
             }
         });
     }
 
+    public static boolean isCarrying() {
+        return carrying;
+    }
+
+    public static void adjustCarryDistance(double scrollAmount) {
+        carryDistance += scrollAmount * 0.3;
+        if (carryDistance < MIN_DISTANCE) carryDistance = MIN_DISTANCE;
+        if (carryDistance > MAX_DISTANCE) carryDistance = MAX_DISTANCE;
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeDouble(carryDistance);
+        ClientPlayNetworking.send(ItemCarryInit.DISTANCE_CHANNEL, buf);
+    }
+
     public static void onAttackItem(ItemEntity item) {
+        carrying = !carrying;
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
+    }
+
+    private static void sendPickup(int entityId) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(entityId);
+        ClientPlayNetworking.send(ItemCarryInit.PICKUP_CHANNEL, buf);
     }
 
     private static ItemEntity getTargetedItem(MinecraftClient client) {
