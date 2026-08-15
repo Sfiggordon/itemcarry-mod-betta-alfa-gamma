@@ -34,7 +34,8 @@ public class ItemCarryInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(CARRY_TOGGLE_CHANNEL, (server, player, handler, buf, responseSender) -> {
             int entityId = buf.readInt();
-            server.execute(() -> ItemCarryMod.handleCarryToggle(player, entityId));
+            boolean gentle = buf.readBoolean();
+            server.execute(() -> ItemCarryMod.handleCarryToggle(player, entityId, gentle));
         });
 
         ServerPlayNetworking.registerGlobalReceiver(DISTANCE_CHANNEL, (server, player, handler, buf, responseSender) -> {
