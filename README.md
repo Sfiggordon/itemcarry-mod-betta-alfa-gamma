@@ -27,3 +27,4 @@ src/main/resources/...    — fabric.mod.json, mixins, переводы клав
 42-я улица проклята https://youtube.com/@42ndstreetiscursed?si=RNNffgXF80zIWefn
 ```
 VladShuster in new Burmalda
+Dmitriy ruster
