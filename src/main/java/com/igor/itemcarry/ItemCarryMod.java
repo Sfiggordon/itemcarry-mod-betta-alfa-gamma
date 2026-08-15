@@ -26,9 +26,10 @@ public class ItemCarryMod {
 
             double distance = carryDistances.getOrDefault(player.getUuid(), 2.2);
             Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(distance));
+            Vec3d delta = target.subtract(item.getPos());
 
+            item.setVelocity(delta);
             item.setPosition(target.x, target.y, target.z);
-            item.setVelocity(Vec3d.ZERO);
         }
     }
 
@@ -61,7 +62,7 @@ public class ItemCarryMod {
         tryInsert(player, item);
     }
 
-    public static void handleCarryToggle(ServerPlayerEntity player, int entityId) {
+    public static void handleCarryToggle(ServerPlayerEntity player, int entityId, boolean gentle) {
         UUID uuid = player.getUuid();
 
         if (carrying.containsKey(uuid)) {
@@ -69,9 +70,12 @@ public class ItemCarryMod {
             ItemEntity oldItem = findItem(player.getServer(), oldId);
             if (oldItem != null && !oldItem.isRemoved()) {
                 oldItem.setNoGravity(false);
-                Vec3d throwDir = player.getRotationVec(1.0f).multiply(0.35).add(0, 0.15, 0);
-                Vec3d toss = player.getVelocity().add(throwDir);
-                oldItem.setVelocity(toss);
+                if (gentle) {
+                    oldItem.setVelocity(Vec3d.ZERO);
+                } else {
+                    Vec3d throwDir = player.getRotationVec(1.0f).multiply(0.35).add(0, 0.15, 0);
+                    oldItem.setVelocity(player.getVelocity().add(throwDir));
+                }
                 oldItem.velocityModified = true;
             }
             return;
