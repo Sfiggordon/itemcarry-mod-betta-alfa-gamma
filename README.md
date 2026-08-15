@@ -13,12 +13,9 @@
 ```
 42-я улица проклята https://youtube.com/@42ndstreetiscursed?si=RNNffgXF80zIWefn
 ```
-VladShuster in new Burmalda
+Vlad Shuster in new Burmalda
 
 ```
 Dmitriy ruster
-
-
-**DIPI**
-
 ```
+**DIPI zombar**
