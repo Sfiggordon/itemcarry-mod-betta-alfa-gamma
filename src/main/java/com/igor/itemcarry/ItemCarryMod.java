@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public class ItemCarryMod {
     private static final double MAX_REACH = 8.0;
+    private static final double CARRY_SMOOTHING = 0.4;
     private static final Map<UUID, Integer> carrying = new HashMap<>();
 
     public static void onServerTick(MinecraftServer server) {
@@ -22,8 +23,11 @@ public class ItemCarryMod {
             if (player == null) { it.remove(); continue; }
             ItemEntity item = findItem(server, entry.getValue());
             if (item == null || item.isRemoved()) { it.remove(); continue; }
+
             Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(2.2));
-            item.setPosition(target.x, target.y, target.z);
+            Vec3d smoothed = item.getPos().lerp(target, CARRY_SMOOTHING);
+
+            item.setPosition(smoothed.x, smoothed.y, smoothed.z);
             item.setVelocity(Vec3d.ZERO);
         }
     }
@@ -96,4 +100,4 @@ public class ItemCarryMod {
         }
         return null;
     }
-            }
+}
