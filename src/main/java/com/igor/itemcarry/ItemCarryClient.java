@@ -11,7 +11,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
@@ -42,10 +41,6 @@ public class ItemCarryClient implements ClientModInitializer {
     }
 
     public static void onAttackItem(ItemEntity item) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player != null) {
-            client.player.sendMessage(Text.literal("§b[ItemCarry] Клик поймал, отправляю carry-пакет"), true);
-        }
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
@@ -75,4 +70,4 @@ public class ItemCarryClient implements ClientModInitializer {
         }
         return closest;
     }
-                    }
+}
