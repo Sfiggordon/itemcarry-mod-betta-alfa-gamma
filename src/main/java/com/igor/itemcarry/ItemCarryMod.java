@@ -12,7 +12,6 @@ import java.util.UUID;
 
 public class ItemCarryMod {
     private static final double MAX_REACH = 8.0;
-    private static final double MAX_STEP_PER_TICK = 0.6;
     private static final Map<UUID, Integer> carrying = new HashMap<>();
     private static final Map<UUID, Double> carryDistances = new HashMap<>();
 
@@ -27,15 +26,8 @@ public class ItemCarryMod {
 
             double distance = carryDistances.getOrDefault(player.getUuid(), 2.2);
             Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(distance));
-            Vec3d current = item.getPos();
-            Vec3d diff = target.subtract(current);
-            double dist = diff.length();
 
-            Vec3d newPos = (dist <= MAX_STEP_PER_TICK || dist < 0.0001)
-                ? target
-                : current.add(diff.multiply(MAX_STEP_PER_TICK / dist));
-
-            item.setPosition(newPos.x, newPos.y, newPos.z);
+            item.setPosition(target.x, target.y, target.z);
             item.setVelocity(Vec3d.ZERO);
         }
     }
@@ -77,7 +69,8 @@ public class ItemCarryMod {
             ItemEntity oldItem = findItem(player.getServer(), oldId);
             if (oldItem != null && !oldItem.isRemoved()) {
                 oldItem.setNoGravity(false);
-                Vec3d toss = player.getRotationVec(1.0f).multiply(0.35).add(0, 0.15, 0);
+                Vec3d throwDir = player.getRotationVec(1.0f).multiply(0.35).add(0, 0.15, 0);
+                Vec3d toss = player.getVelocity().add(throwDir);
                 oldItem.setVelocity(toss);
                 oldItem.velocityModified = true;
             }
