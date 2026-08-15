@@ -1,74 +1,99 @@
 package com.igor.itemcarry;
 
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.math.Box;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
-import org.lwjgl.glfw.GLFW;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
 
-public class ItemCarryClient implements ClientModInitializer {
-    private static KeyBinding pickupKey;
+public class ItemCarryMod {
+    private static final double MAX_REACH = 8.0;
+    private static final Map<UUID, Integer> carrying = new HashMap<>();
 
-    @Override
-    public void onInitializeClient() {
-        pickupKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.itemcarry.pickup",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_R,
-            "key.categories.itemcarry"
-        ));
-
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null) return;
-            while (pickupKey.wasPressed()) {
-                ItemEntity target = getTargetedItem(client);
-                if (target != null) {
-                    PacketByteBuf buf = PacketByteBufs.create();
-                    buf.writeInt(target.getId());
-                    ClientPlayNetworking.send(ItemCarryInit.PICKUP_CHANNEL, buf);
-                }
-            }
-        });
-    }
-
-    public static void onAttackItem(ItemEntity item) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeInt(item.getId());
-        ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
-    }
-
-    private static ItemEntity getTargetedItem(MinecraftClient client) {
-        ClientPlayerEntity player = client.player;
-        if (player == null || client.world == null) return null;
-
-        Vec3d pos = player.getCameraPosVec(1.0f);
-        Vec3d dir = player.getRotationVec(1.0f);
-        Vec3d end = pos.add(dir.multiply(4.5));
-        Box box = player.getBoundingBox().stretch(dir.multiply(4.5)).expand(1.0);
-
-        ItemEntity closest = null;
-        double closestDist = 4.5 * 4.5;
-
-        for (ItemEntity item : client.world.getEntitiesByClass(ItemEntity.class, box, e -> true)) {
-            Optional<Vec3d> hit = item.getBoundingBox().expand(0.3).raycast(pos, end);
-            if (hit.isPresent()) {
-                double dist = pos.squaredDistanceTo(hit.get());
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = item;
-                }
-            }
+    public static void onServerTick(MinecraftServer server) {
+        Iterator<Map.Entry<UUID, Integer>> it = carrying.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Integer> entry = it.next();
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
+            if (player == null) { it.remove(); continue; }
+            ItemEntity item = findItem(server, entry.getValue());
+            if (item == null || item.isRemoved()) { it.remove(); continue; }
+            Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(2.2));
+            item.setPosition(target.x, target.y, target.z);
+            item.setVelocity(Vec3d.ZERO);
         }
-        return closest;
+    }
+
+    public static void handlePickup(ServerPlayerEntity player, int entityId) {
+        UUID uuid = player.getUuid();
+
+        if (carrying.containsKey(uuid)) {
+            int carriedId = carrying.get(uuid);
+            ItemEntity carriedItem = findItem(player.getServer(), carriedId);
+            if (carriedItem != null && !carriedItem.isRemoved()) {
+                tryInsert(player, carriedItem);
+            }
+            carrying.remove(uuid);
+            return;
+        }
+
+        ItemEntity item = findItem(player.getServer(), entityId);
+        if (item == null || item.isRemoved()) return;
+        if (carrying.containsValue(entityId)) return;
+        if (player.getPos().squaredDistanceTo(item.getPos()) > MAX_REACH * MAX_REACH) return;
+
+        tryInsert(player, item);
+    }
+
+    public static void handleCarryToggle(ServerPlayerEntity player, int entityId) {
+        UUID uuid = player.getUuid();
+
+        if (carrying.containsKey(uuid)) {
+            int oldId = carrying.remove(uuid);
+            ItemEntity oldItem = findItem(player.getServer(), oldId);
+            if (oldItem != null && !oldItem.isRemoved()) {
+                oldItem.setNoGravity(false);
+                Vec3d toss = player.getRotationVec(1.0f).multiply(0.35).add(0, 0.15, 0);
+                oldItem.setVelocity(toss);
+                oldItem.velocityModified = true;
+            }
+            return;
+        }
+
+        ItemEntity item = findItem(player.getServer(), entityId);
+        if (item == null || item.isRemoved() || carrying.containsValue(entityId)) return;
+        if (player.getPos().squaredDistanceTo(item.getPos()) > MAX_REACH * MAX_REACH) return;
+
+        item.setNoGravity(true);
+        item.setVelocity(Vec3d.ZERO);
+        carrying.put(uuid, entityId);
+    }
+
+    private static void tryInsert(ServerPlayerEntity player, ItemEntity item) {
+        ItemStack stack = item.getStack();
+        int before = stack.getCount();
+        player.getInventory().insertStack(stack);
+        int picked = before - stack.getCount();
+        if (picked <= 0) return;
+        if (stack.isEmpty()) {
+            item.discard();
+        } else {
+            item.setStack(stack);
+            item.setNoGravity(false);
+        }
+        player.sendPickup(item, picked);
+    }
+
+    private static ItemEntity findItem(MinecraftServer server, int entityId) {
+        if (server == null) return null;
+        for (var world : server.getWorlds()) {
+            var entity = world.getEntityById(entityId);
+            if (entity instanceof ItemEntity) return (ItemEntity) entity;
+        }
+        return null;
     }
 }
