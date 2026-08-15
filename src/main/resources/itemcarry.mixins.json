@@ -3,6 +3,6 @@
   "package": "com.igor.itemcarry.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [],
-  "client": ["ClientPlayerInteractionManagerMixin"],
+  "client": ["ClientPlayerInteractionManagerMixin", "ItemEntityMixin"],
   "injectors": {"defaultRequire": 1}
 }
