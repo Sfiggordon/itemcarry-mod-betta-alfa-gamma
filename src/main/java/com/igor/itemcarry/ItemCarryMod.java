@@ -12,8 +12,9 @@ import java.util.UUID;
 
 public class ItemCarryMod {
     private static final double MAX_REACH = 8.0;
-    private static final double CARRY_SMOOTHING = 0.4;
+    private static final double MAX_STEP_PER_TICK = 0.6;
     private static final Map<UUID, Integer> carrying = new HashMap<>();
+    private static final Map<UUID, Double> carryDistances = new HashMap<>();
 
     public static void onServerTick(MinecraftServer server) {
         Iterator<Map.Entry<UUID, Integer>> it = carrying.entrySet().iterator();
@@ -24,12 +25,25 @@ public class ItemCarryMod {
             ItemEntity item = findItem(server, entry.getValue());
             if (item == null || item.isRemoved()) { it.remove(); continue; }
 
-            Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(2.2));
-            Vec3d smoothed = item.getPos().lerp(target, CARRY_SMOOTHING);
+            double distance = carryDistances.getOrDefault(player.getUuid(), 2.2);
+            Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(distance));
+            Vec3d current = item.getPos();
+            Vec3d diff = target.subtract(current);
+            double dist = diff.length();
 
-            item.setPosition(smoothed.x, smoothed.y, smoothed.z);
+            Vec3d newPos = (dist <= MAX_STEP_PER_TICK || dist < 0.0001)
+                ? target
+                : current.add(diff.multiply(MAX_STEP_PER_TICK / dist));
+
+            item.setPosition(newPos.x, newPos.y, newPos.z);
             item.setVelocity(Vec3d.ZERO);
         }
+    }
+
+    public static void setCarryDistance(ServerPlayerEntity player, double distance) {
+        if (distance < 1.0) distance = 1.0;
+        if (distance > 5.0) distance = 5.0;
+        carryDistances.put(player.getUuid(), distance);
     }
 
     public static void handlePickup(ServerPlayerEntity player, int entityId) {
@@ -44,6 +58,8 @@ public class ItemCarryMod {
             carrying.remove(uuid);
             return;
         }
+
+        if (entityId < 0) return;
 
         ItemEntity item = findItem(player.getServer(), entityId);
         if (item == null || item.isRemoved()) return;
