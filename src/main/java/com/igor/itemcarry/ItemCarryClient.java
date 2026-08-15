@@ -63,6 +63,16 @@ public class ItemCarryClient implements ClientModInitializer {
         carrying = !carrying;
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
+        buf.writeBoolean(false);
+        ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
+    }
+
+    public static void onRightClickPlace() {
+        if (!carrying) return;
+        carrying = false;
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(-1);
+        buf.writeBoolean(true);
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
     }
 
