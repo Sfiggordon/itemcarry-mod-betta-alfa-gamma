@@ -1,7 +1,10 @@
 package com.igor.itemcarry;
 
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
@@ -30,12 +33,18 @@ public class ItemCarryMod {
         UUID uuid = player.getUuid();
 
         if (carrying.containsKey(uuid)) {
-            int carriedId = carrying.get(uuid);
+            int carriedId = carrying.remove(uuid);
             ItemEntity carriedItem = findItem(player.getServer(), carriedId);
             if (carriedItem != null && !carriedItem.isRemoved()) {
-                tryInsert(player, carriedItem);
+                boolean fullyPicked = tryInsert(player, carriedItem);
+                if (!fullyPicked) {
+                    // не влезло в инвентарь - аккуратно отпускаем, а не бросаем замороженным
+                    carriedItem.setNoGravity(false);
+                    carriedItem.setVelocity(Vec3d.ZERO);
+                    carriedItem.velocityModified = true;
+                }
             }
-            carrying.remove(uuid);
+            sendCarryState(player, false, -1);
             return;
         }
 
@@ -65,6 +74,7 @@ public class ItemCarryMod {
                 }
                 oldItem.velocityModified = true;
             }
+            sendCarryState(player, false, -1);
             return;
         }
 
@@ -75,21 +85,29 @@ public class ItemCarryMod {
         item.setNoGravity(true);
         item.setVelocity(Vec3d.ZERO);
         carrying.put(uuid, entityId);
+        sendCarryState(player, true, entityId);
     }
 
-    private static void tryInsert(ServerPlayerEntity player, ItemEntity item) {
+    private static boolean tryInsert(ServerPlayerEntity player, ItemEntity item) {
         ItemStack stack = item.getStack();
         int before = stack.getCount();
         player.getInventory().insertStack(stack);
         int picked = before - stack.getCount();
-        if (picked <= 0) return;
+        if (picked <= 0) return false;
         if (stack.isEmpty()) {
             item.discard();
         } else {
             item.setStack(stack);
-            item.setNoGravity(false);
         }
         player.sendPickup(item, picked);
+        return stack.isEmpty();
+    }
+
+    private static void sendCarryState(ServerPlayerEntity player, boolean isCarrying, int entityId) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBoolean(isCarrying);
+        buf.writeInt(entityId);
+        ServerPlayNetworking.send(player, ItemCarryInit.CARRY_STATE_CHANNEL, buf);
     }
 
     private static ItemEntity findItem(MinecraftServer server, int entityId) {
@@ -100,4 +118,4 @@ public class ItemCarryMod {
         }
         return null;
     }
-}
+                    }
