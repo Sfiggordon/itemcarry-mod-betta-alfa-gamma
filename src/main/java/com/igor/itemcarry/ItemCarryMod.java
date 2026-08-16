@@ -13,7 +13,6 @@ import java.util.UUID;
 public class ItemCarryMod {
     private static final double MAX_REACH = 8.0;
     private static final Map<UUID, Integer> carrying = new HashMap<>();
-    private static final Map<UUID, Double> carryDistances = new HashMap<>();
 
     public static void onServerTick(MinecraftServer server) {
         Iterator<Map.Entry<UUID, Integer>> it = carrying.entrySet().iterator();
@@ -23,20 +22,8 @@ public class ItemCarryMod {
             if (player == null) { it.remove(); continue; }
             ItemEntity item = findItem(server, entry.getValue());
             if (item == null || item.isRemoved()) { it.remove(); continue; }
-
-            double distance = carryDistances.getOrDefault(player.getUuid(), 2.2);
-            Vec3d target = player.getCameraPosVec(1.0f).add(player.getRotationVec(1.0f).multiply(distance));
-            Vec3d delta = target.subtract(item.getPos());
-
-            item.setVelocity(delta);
-            item.setPosition(target.x, target.y, target.z);
+            item.setVelocity(Vec3d.ZERO);
         }
-    }
-
-    public static void setCarryDistance(ServerPlayerEntity player, double distance) {
-        if (distance < 1.0) distance = 1.0;
-        if (distance > 5.0) distance = 5.0;
-        carryDistances.put(player.getUuid(), distance);
     }
 
     public static void handlePickup(ServerPlayerEntity player, int entityId) {
