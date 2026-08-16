@@ -34,6 +34,16 @@ public class ItemCarryClient implements ClientModInitializer {
             "key.categories.itemcarry"
         ));
 
+        // Сервер — единственный источник правды о том, держим мы что-то или нет
+        ClientPlayNetworking.registerGlobalReceiver(ItemCarryInit.CARRY_STATE_CHANNEL, (client, handler, buf, responseSender) -> {
+            boolean nowCarrying = buf.readBoolean();
+            int entityId = buf.readInt();
+            client.execute(() -> {
+                carrying = nowCarrying;
+                carriedEntityId = nowCarrying ? entityId : -1;
+            });
+        });
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) return;
 
@@ -44,20 +54,15 @@ public class ItemCarryClient implements ClientModInitializer {
                         .add(client.player.getRotationVec(1.0f).multiply(carryDistance));
                     carried.setPosition(target.x, target.y, target.z);
                     carried.setVelocity(Vec3d.ZERO);
-                } else {
-                    carrying = false;
-                    carriedEntityId = -1;
                 }
             }
 
             while (pickupKey.wasPressed()) {
                 if (carrying) {
-                    carrying = false;
-                    carriedEntityId = -1;
-                    sendPickup(-1);
+                    sendPickup(carriedEntityId);
                 } else {
                     ItemEntity target = getTargetedItem(client);
-                    if (target != null) sendPickup(target.getId());
+                    sendPickup(target != null ? target.getId() : -1);
                 }
             }
         });
@@ -74,8 +79,8 @@ public class ItemCarryClient implements ClientModInitializer {
     }
 
     public static void onAttackItem(ItemEntity item) {
-        carrying = true;
-        carriedEntityId = item.getId();
+        // Просто отправляем запрос — сервер сам решит грабнуть или бросить,
+        // и подтвердит через CARRY_STATE_CHANNEL. Локально ничего не меняем.
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
         buf.writeBoolean(false);
@@ -84,10 +89,8 @@ public class ItemCarryClient implements ClientModInitializer {
 
     public static void onRightClickPlace() {
         if (!carrying) return;
-        carrying = false;
-        carriedEntityId = -1;
         PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeInt(-1);
+        buf.writeInt(carriedEntityId);
         buf.writeBoolean(true);
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
     }
@@ -122,4 +125,4 @@ public class ItemCarryClient implements ClientModInitializer {
         }
         return closest;
     }
-}
+            }
