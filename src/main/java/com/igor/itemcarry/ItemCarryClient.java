@@ -9,6 +9,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.Box;
@@ -19,6 +20,7 @@ import java.util.Optional;
 public class ItemCarryClient implements ClientModInitializer {
     private static KeyBinding pickupKey;
     private static boolean carrying = false;
+    private static int carriedEntityId = -1;
     private static double carryDistance = 2.2;
     private static final double MIN_DISTANCE = 1.0;
     private static final double MAX_DISTANCE = 5.0;
@@ -34,9 +36,24 @@ public class ItemCarryClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) return;
+
+            if (carrying && carriedEntityId != -1) {
+                Entity carried = client.world.getEntityById(carriedEntityId);
+                if (carried instanceof ItemEntity) {
+                    Vec3d target = client.player.getCameraPosVec(1.0f)
+                        .add(client.player.getRotationVec(1.0f).multiply(carryDistance));
+                    carried.setPosition(target.x, target.y, target.z);
+                    carried.setVelocity(Vec3d.ZERO);
+                } else {
+                    carrying = false;
+                    carriedEntityId = -1;
+                }
+            }
+
             while (pickupKey.wasPressed()) {
                 if (carrying) {
                     carrying = false;
+                    carriedEntityId = -1;
                     sendPickup(-1);
                 } else {
                     ItemEntity target = getTargetedItem(client);
@@ -54,13 +71,11 @@ public class ItemCarryClient implements ClientModInitializer {
         carryDistance += scrollAmount * 0.3;
         if (carryDistance < MIN_DISTANCE) carryDistance = MIN_DISTANCE;
         if (carryDistance > MAX_DISTANCE) carryDistance = MAX_DISTANCE;
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeDouble(carryDistance);
-        ClientPlayNetworking.send(ItemCarryInit.DISTANCE_CHANNEL, buf);
     }
 
     public static void onAttackItem(ItemEntity item) {
-        carrying = !carrying;
+        carrying = true;
+        carriedEntityId = item.getId();
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
         buf.writeBoolean(false);
@@ -70,6 +85,7 @@ public class ItemCarryClient implements ClientModInitializer {
     public static void onRightClickPlace() {
         if (!carrying) return;
         carrying = false;
+        carriedEntityId = -1;
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(-1);
         buf.writeBoolean(true);
