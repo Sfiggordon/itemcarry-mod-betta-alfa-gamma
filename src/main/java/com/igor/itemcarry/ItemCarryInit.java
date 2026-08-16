@@ -14,7 +14,6 @@ import net.minecraft.util.Identifier;
 public class ItemCarryInit implements ModInitializer {
     public static final Identifier PICKUP_CHANNEL = new Identifier("itemcarry", "pickup");
     public static final Identifier CARRY_TOGGLE_CHANNEL = new Identifier("itemcarry", "carry_toggle");
-    public static final Identifier DISTANCE_CHANNEL = new Identifier("itemcarry", "distance");
 
     @Override
     public void onInitialize() {
@@ -36,11 +35,6 @@ public class ItemCarryInit implements ModInitializer {
             int entityId = buf.readInt();
             boolean gentle = buf.readBoolean();
             server.execute(() -> ItemCarryMod.handleCarryToggle(player, entityId, gentle));
-        });
-
-        ServerPlayNetworking.registerGlobalReceiver(DISTANCE_CHANNEL, (server, player, handler, buf, responseSender) -> {
-            double distance = buf.readDouble();
-            server.execute(() -> ItemCarryMod.setCarryDistance(player, distance));
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
