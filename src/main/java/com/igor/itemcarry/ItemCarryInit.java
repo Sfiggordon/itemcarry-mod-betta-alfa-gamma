@@ -14,6 +14,7 @@ import net.minecraft.util.Identifier;
 public class ItemCarryInit implements ModInitializer {
     public static final Identifier PICKUP_CHANNEL = new Identifier("itemcarry", "pickup");
     public static final Identifier CARRY_TOGGLE_CHANNEL = new Identifier("itemcarry", "carry_toggle");
+    public static final Identifier CARRY_STATE_CHANNEL = new Identifier("itemcarry", "carry_state");
 
     @Override
     public void onInitialize() {
