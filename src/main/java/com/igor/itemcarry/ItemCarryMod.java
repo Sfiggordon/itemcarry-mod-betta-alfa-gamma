@@ -38,7 +38,6 @@ public class ItemCarryMod {
             if (carriedItem != null && !carriedItem.isRemoved()) {
                 boolean fullyPicked = tryInsert(player, carriedItem);
                 if (!fullyPicked) {
-                    // не влезло в инвентарь - аккуратно отпускаем, а не бросаем замороженным
                     carriedItem.setNoGravity(false);
                     carriedItem.setVelocity(Vec3d.ZERO);
                     carriedItem.velocityModified = true;
@@ -58,13 +57,14 @@ public class ItemCarryMod {
         tryInsert(player, item);
     }
 
-    public static void handleCarryToggle(ServerPlayerEntity player, int entityId, boolean gentle) {
+    public static void handleCarryToggle(ServerPlayerEntity player, int entityId, boolean gentle, double x, double y, double z) {
         UUID uuid = player.getUuid();
 
         if (carrying.containsKey(uuid)) {
             int oldId = carrying.remove(uuid);
             ItemEntity oldItem = findItem(player.getServer(), oldId);
             if (oldItem != null && !oldItem.isRemoved()) {
+                oldItem.setPosition(x, y, z);
                 oldItem.setNoGravity(false);
                 if (gentle) {
                     oldItem.setVelocity(Vec3d.ZERO);
@@ -118,4 +118,4 @@ public class ItemCarryMod {
         }
         return null;
     }
-                    }
+}
