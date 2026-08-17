@@ -23,3 +23,4 @@ Vlad Shuster in new Burmalda
 Dmitriy ruster
 ```
 **DIPI zombar**
+**ДЛЯ УСТАНОВКИ МОДА ТРЕБУЕТСЯ УСТАНОВЛЕНЫЙ FABRICK API!!!* 
