@@ -34,7 +34,6 @@ public class ItemCarryClient implements ClientModInitializer {
             "key.categories.itemcarry"
         ));
 
-        // Подстраховка на случай рассинхрона — сервер может поправить нас, если что-то пошло не так
         ClientPlayNetworking.registerGlobalReceiver(ItemCarryInit.CARRY_STATE_CHANNEL, (client, handler, buf, responseSender) -> {
             boolean nowCarrying = buf.readBoolean();
             int entityId = buf.readInt();
@@ -50,8 +49,7 @@ public class ItemCarryClient implements ClientModInitializer {
             if (carrying && carriedEntityId != -1) {
                 Entity carried = client.world.getEntityById(carriedEntityId);
                 if (carried instanceof ItemEntity) {
-                    Vec3d target = client.player.getCameraPosVec(1.0f)
-                        .add(client.player.getRotationVec(1.0f).multiply(carryDistance));
+                    Vec3d target = heldPosition(client);
                     carried.setPosition(target.x, target.y, target.z);
                     carried.setVelocity(Vec3d.ZERO);
                 }
@@ -81,29 +79,45 @@ public class ItemCarryClient implements ClientModInitializer {
     }
 
     public static void onAttackItem(ItemEntity item) {
-        // Мгновенно, локально, БЕЗ ожидания сети - иначе будет драка клиент/сервер за позицию
-        if (carrying) {
+        boolean wasCarrying = carrying;
+        Vec3d pos = wasCarrying ? heldPosition(MinecraftClient.getInstance()) : Vec3d.ZERO;
+
+        if (wasCarrying) {
             carrying = false;
             carriedEntityId = -1;
         } else {
             carrying = true;
             carriedEntityId = item.getId();
         }
+
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(item.getId());
         buf.writeBoolean(false);
+        buf.writeDouble(pos.x);
+        buf.writeDouble(pos.y);
+        buf.writeDouble(pos.z);
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
     }
 
     public static void onRightClickPlace() {
         if (!carrying) return;
         int droppedId = carriedEntityId;
+        Vec3d pos = heldPosition(MinecraftClient.getInstance());
         carrying = false;
         carriedEntityId = -1;
+
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(droppedId);
         buf.writeBoolean(true);
+        buf.writeDouble(pos.x);
+        buf.writeDouble(pos.y);
+        buf.writeDouble(pos.z);
         ClientPlayNetworking.send(ItemCarryInit.CARRY_TOGGLE_CHANNEL, buf);
+    }
+
+    private static Vec3d heldPosition(MinecraftClient client) {
+        if (client.player == null) return Vec3d.ZERO;
+        return client.player.getCameraPosVec(1.0f).add(client.player.getRotationVec(1.0f).multiply(carryDistance));
     }
 
     private static void sendPickup(int entityId) {
@@ -136,4 +150,4 @@ public class ItemCarryClient implements ClientModInitializer {
         }
         return closest;
     }
-}
+                                        }
