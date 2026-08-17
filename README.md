@@ -25,3 +25,4 @@ Dmitriy ruster
 **DIPI zombar**
 
 *ДЛЯ УСТАНОВКИ МОДА ТРЕБУЕТСЯ УСТАНОВЛЕНЫЙ FABRIC API ПОСЛЕДНЕЙ ВЕРСИИ!!!* 
+```bazooka coming soon...```
